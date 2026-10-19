@@ -1,0 +1,117 @@
+{
+  "titolo": "News4u",
+  "max_per_settore": 6,
+  "giorni_in_pagina": 7,
+  "sections": [
+    {
+      "id": "ai",
+      "name": "AI",
+      "color": "#5B5BD6",
+      "motif": "nodes",
+      "topic": "intelligenza artificiale in generale: modelli, aziende, regole, ricerca (escludi notizie che riguardano solo Anthropic o solo OpenAI)",
+      "feeds": [
+        "https://techcrunch.com/category/artificial-intelligence/feed/",
+        "https://www.theverge.com/rss/ai-artificial-intelligence/index.xml",
+        "https://news.google.com/rss/search?q=intelligenza+artificiale+when:2d&hl=it&gl=IT&ceid=IT:it"
+      ]
+    },
+    {
+      "id": "anthropic",
+      "name": "Anthropic",
+      "color": "#9A7448",
+      "motif": "rays",
+      "topic": "Anthropic e i modelli Claude",
+      "feeds": [
+        "https://news.google.com/rss/search?q=Anthropic+Claude+when:2d&hl=en-US&gl=US&ceid=US:en"
+      ]
+    },
+    {
+      "id": "openai",
+      "name": "OpenAI",
+      "color": "#2F7A5A",
+      "motif": "rings",
+      "topic": "OpenAI, ChatGPT e i modelli GPT",
+      "feeds": [
+        "https://openai.com/news/rss.xml",
+        "https://news.google.com/rss/search?q=OpenAI+when:2d&hl=en-US&gl=US&ceid=US:en"
+      ]
+    },
+    {
+      "id": "apple",
+      "name": "Apple",
+      "color": "#6B7684",
+      "motif": "tiles",
+      "topic": "Apple: prodotti, software, indiscrezioni, azienda",
+      "feeds": [
+        "https://www.macrumors.com/macrumors.xml",
+        "https://9to5mac.com/feed/",
+        "https://www.apple.com/newsroom/rss-feed.rss"
+      ]
+    },
+    {
+      "id": "retail",
+      "name": "Retail",
+      "color": "#B7791F",
+      "motif": "bars",
+      "topic": "commercio al dettaglio, e-commerce, catene di negozi, retail media, tecnologia per il retail",
+      "feeds": [
+        "https://www.retaildive.com/feeds/news/",
+        "https://news.google.com/rss/search?q=retail+when:2d&hl=it&gl=IT&ceid=IT:it"
+      ]
+    },
+    {
+      "id": "bagno",
+      "name": "Arredo bagno",
+      "color": "#0F7C86",
+      "motif": "water",
+      "topic": "arredo bagno, rubinetteria, sanitari, ceramica, design del bagno, fiere e aziende del settore",
+      "feeds": [
+        "https://news.google.com/rss/search?q=%22arredo+bagno%22+OR+arredobagno+OR+rubinetteria+OR+%22sanitari+bagno%22+when:7d&hl=it&gl=IT&ceid=IT:it",
+        "https://news.google.com/rss/search?q=Cersaie+OR+%22ceramica+sanitaria%22+OR+%22mobili+bagno%22+when:7d&hl=it&gl=IT&ceid=IT:it",
+        "https://news.google.com/rss/search?q=%22bathroom+industry%22+OR+%22faucet+maker%22+OR+%22sanitaryware%22+when:7d&hl=en-US&gl=US&ceid=US:en"
+      ],
+      "max_age_hours": 168
+    },
+    {
+      "id": "innovazione",
+      "name": "Innovazione",
+      "color": "#A23B72",
+      "motif": "tri",
+      "topic": "innovazione tecnologica e scientifica, startup, robotica, energia, nuovi materiali",
+      "feeds": [
+        "https://www.technologyreview.com/feed/",
+        "https://www.wired.it/feed/rss"
+      ],
+      "max_age_hours": 72
+    },
+    {
+      "id": "hacking",
+      "name": "Hacking",
+      "color": "#C2342A",
+      "motif": "glitch",
+      "topic": "sicurezza informatica: vulnerabilità, attacchi, violazioni di dati, ransomware",
+      "feeds": [
+        "https://feeds.feedburner.com/TheHackersNews",
+        "https://www.bleepingcomputer.com/feed/",
+        "https://krebsonsecurity.com/feed/"
+      ]
+    }
+  ],
+  "tendenze": {
+    "enabled": true,
+    "name": "In tendenza",
+    "topic": "post e discussioni più popolari su nuove tecnologie e AI: nuovi modelli, rilasci, strumenti, ricerca, robotica, hardware, sicurezza. Scarta meme, sondaggi, domande personali, politica e polemiche senza notizia",
+    "max": 10,
+    "reddit_subs": [
+      "LocalLLaMA",
+      "MachineLearning",
+      "OpenAI",
+      "singularity"
+    ],
+    "hacker_news": true,
+    "hn_min_points": 150,
+    "x_query": "(AI OR LLM OR \"artificial intelligence\" OR OpenAI OR Anthropic OR Gemini OR robotics) -is:retweet -is:reply lang:en",
+    "x_max": 25,
+    "x_min_likes": 300
+  }
+}
