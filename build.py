@@ -93,7 +93,16 @@ def collect(section, seen):
                 feed = feedparser.parse(url)
             else:
                 # scarico con requests (usa i certificati di certifi: evita gli errori SSL del Mac)
-                r = requests.get(url, headers={"User-Agent": UA}, timeout=20)
+                is_reddit = "reddit.com" in url
+                for attempt in range(3):
+                    if is_reddit:
+                        time.sleep(3)   # Reddit limita le richieste ravvicinate
+                    r = requests.get(url, headers={"User-Agent": REDDIT_UA if is_reddit else UA}, timeout=20)
+                    if r.status_code == 429 and attempt < 2:
+                        log(f"  … {url.split('/')[2]} chiede di rallentare, riprovo")
+                        time.sleep(15 * (attempt + 1))
+                        continue
+                    break
                 r.raise_for_status()
                 feed = feedparser.parse(r.content)
         except Exception as ex:
@@ -114,6 +123,9 @@ def collect(section, seen):
                 continue
             title = clean(e.get("title"), 300)
             source = clean((e.get("source") or {}).get("title", ""), 80) or feed_title
+            m_sub = re.search(r"reddit\.com/r/([^/]+)/", link)
+            if m_sub:
+                source = f"r/{m_sub.group(1)}"
             if "news.google.com" in url and " - " in title:   # Google News: "Titolo - Fonte"
                 title, _, src2 = title.rpartition(" - ")
                 source = source or src2
@@ -267,16 +279,20 @@ def collect_trends(seen, cfg):
 
 
 SYSTEM = (
-    "Sei il redattore di una rassegna stampa personale in italiano. "
-    "Ricevi un elenco numerato di articoli candidati per un settore. "
+    "Sei il redattore di una rassegna stampa quotidiana scritta interamente in italiano. "
+    "Ricevi un elenco numerato di articoli candidati per un settore, in qualsiasi lingua. "
     "Scegli le notizie davvero rilevanti per il settore indicato, scarta quelle fuori tema, "
     "promozionali o duplicate (se più articoli parlano dello stesso fatto tienine uno solo). "
-    "Per ogni notizia scelta scrivi un titolo in italiano chiaro e informativo (max 110 caratteri) "
+    "Per ogni notizia scelta scrivi un titolo in italiano chiaro e informativo (massimo 110 caratteri) "
     "e un riassunto in italiano di 2-3 frasi con parole tue, fattuale, senza citazioni letterali "
-    "e senza aggiungere fatti che non sono nel testo fornito. "
-    "Se un candidato è un post di X o una discussione, il titolo deve dire di cosa parla, non citarlo. "
-    "Rispondi SOLO con JSON valido, senza testo prima o dopo e senza backtick, nel formato: "
-    '{"items":[{"n":1,"titolo":"...","riassunto":"..."}]} ordinati dal più importante.'
+    "e senza aggiungere fatti che non sono nel testo fornito. Traduci sempre in italiano, "
+    "anche se il candidato è in inglese o in un'altra lingua. "
+    "Se un candidato è un post di Reddit, di X o una discussione, il titolo deve dire di cosa parla, non citarlo. "
+    "Rispondi SOLO in questo formato, un blocco per notizia, dal più importante, senza nessun altro testo:\n"
+    "N: <numero del candidato>\n"
+    "TITOLO: <titolo in italiano>\n"
+    "RIASSUNTO: <riassunto in italiano>\n"
+    "(lascia una riga vuota tra un blocco e l'altro)"
 )
 
 
@@ -296,7 +312,7 @@ def ask_model(prompt, key):
     body = {
         # Gemma non accetta istruzioni di sistema separate: vanno nel messaggio
         "contents": [{"role": "user", "parts": [{"text": SYSTEM + "\n\n" + prompt}]}],
-        "generationConfig": {"temperature": 0.3, "maxOutputTokens": 4000},
+        "generationConfig": {"temperature": 0.3, "maxOutputTokens": 8192},
     }
     last = "nessun modello disponibile"
     for model in MODELS:
@@ -334,6 +350,25 @@ def ask_model(prompt, key):
     raise RuntimeError(last)
 
 
+BLOCK_RE = re.compile(
+    r"N\s*[:=.]\s*(\d+)\s*\n+\s*TITOLO\s*:\s*(.+?)\s*\n+\s*RIASSUNTO\s*:\s*(.+?)"
+    r"(?=\n\s*\n|\n\s*N\s*[:=.]\s*\d|\Z)", re.S | re.I)
+
+
+def parse_items(text):
+    """Legge i blocchi N/TITOLO/RIASSUNTO; se il modello ha risposto in JSON, prova anche quello."""
+    text = text.replace("**", "").replace("\r", "")
+    items = [{"n": int(m.group(1)), "titolo": clean(m.group(2), 200), "riassunto": clean(m.group(3), 800)}
+             for m in BLOCK_RE.finditer(text)]
+    if items:
+        return items
+    try:
+        data = json.loads(text[text.find("{"): text.rfind("}") + 1])
+        return data.get("items", [])
+    except Exception:
+        return []
+
+
 def summarize(section, cands, limit):
     key = os.environ.get("GEMINI_API_KEY")
     if not key or not cands:
@@ -342,15 +377,27 @@ def summarize(section, cands, limit):
     prompt = (f"Settore: {section['name']} — {section['topic']}.\n"
               f"Scegli al massimo {limit} notizie.\n\nCandidati:\n" + "\n".join(lines))
     try:
-        text = ask_model(prompt, key)
-        text = re.sub(r"```(json)?", "", text).strip()
-        data = json.loads(text[text.find("{"): text.rfind("}") + 1])
-        out = []
-        for it in data.get("items", [])[:limit]:
-            n = int(it.get("n", 0)) - 1
-            if 0 <= n < len(cands):
+        for attempt in range(2):
+            text = ask_model(prompt, key)
+            parsed = parse_items(text)
+            if parsed:
+                break
+            log(f"  … risposta non leggibile ({text[:80]!r}), riprovo")
+            time.sleep(4)
+        else:
+            raise RuntimeError("il modello non ha rispettato il formato")
+        out, used = [], set()
+        for it in parsed:
+            try:
+                n = int(it.get("n", 0)) - 1
+            except (TypeError, ValueError):
+                continue
+            if 0 <= n < len(cands) and n not in used:
+                used.add(n)
                 out.append(dict(cands[n], title_it=it.get("titolo") or cands[n]["title"],
                                 summary=it.get("riassunto") or cands[n]["snippet"][:320]))
+            if len(out) >= limit:
+                break
         time.sleep(4)   # resta largo sotto il limite di richieste al minuto
         return out
     except Exception as ex:
@@ -372,6 +419,28 @@ def add_items(news, section_id, items, today):
             "src": it["source"], "u": it["url"], "img": it.get("image"), "m": it.get("metric"),
             "r": rank, "published": it["published"], "added": today,
         })
+
+
+def roman(n):
+    out = ""
+    for v, r in ((1000, "M"), (900, "CM"), (500, "D"), (400, "CD"), (100, "C"), (90, "XC"),
+                 (50, "L"), (40, "XL"), (10, "X"), (9, "IX"), (5, "V"), (4, "IV"), (1, "I")):
+        while n >= v:
+            out += r
+            n -= v
+    return out
+
+
+def edition():
+    """Anno e numero dell'edizione contati dalla data di fondazione in feeds.json."""
+    try:
+        start = datetime.fromisoformat(CONFIG.get("fondazione", "")).date()
+    except ValueError:
+        return ""
+    days = (NOW.date() - start).days
+    if days < 0:
+        return ""
+    return f"Anno {roman(days // 365 + 1)}, n. {days + 1}"
 
 
 def main():
@@ -418,6 +487,8 @@ def main():
         "title": CONFIG.get("titolo", "News4u"),
         "updated": f"{NOW.day} {MESI[NOW.month - 1]} {NOW.year}",
         "date_long": f"{GIORNI[NOW.weekday()].capitalize()} {NOW.day} {MESI[NOW.month - 1]} {NOW.year}",
+        "direttore": CONFIG.get("direttore", ""),
+        "edition": edition(),
         "sections": sections,
         "news": sorted(news, key=lambda n: (n["added"], n["published"]), reverse=True),
     }

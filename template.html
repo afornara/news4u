@@ -29,7 +29,10 @@ a:hover h2,a:hover h3,a:hover .tt{text-decoration:underline;text-decoration-thic
 .page{max-width:1180px;margin:0 auto;padding:0 24px 48px}
 
 /* ---------- Testata ---------- */
-.ears{display:flex;justify-content:space-between;align-items:baseline;gap:16px;font-family:var(--sans);font-size:.78rem;font-weight:500;color:var(--soft);padding:18px 0 4px}
+.ears{display:grid;grid-template-columns:1fr auto 1fr;align-items:baseline;gap:16px;font-family:var(--sans);font-size:.78rem;font-weight:500;color:var(--soft);padding:18px 0 4px}
+.ears #edition{text-align:right}
+.ears .dir{color:var(--ink);text-align:center}
+.ears .dir em{font-family:var(--serif);font-style:italic;font-weight:400;color:var(--soft);margin-right:5px}
 .mast{text-align:center;padding:4px 0 10px}
 .mast h1{font-family:var(--mast);font-weight:400;font-size:clamp(3.4rem,13vw,8.5rem);line-height:.95;margin:0;letter-spacing:.005em;cursor:pointer}
 .motto{font-style:italic;color:var(--soft);font-size:.95rem;margin:6px 0 0}
@@ -113,7 +116,9 @@ footer{margin-top:28px;border-top:3px double var(--rule);padding-top:12px;font-f
 @media (max-width:620px){
   body{font-size:16px}
   .page{padding:0 16px 40px}
-  .ears span:last-child{display:none}
+  .ears{grid-template-columns:1fr auto}
+  .ears #edition{display:none}
+  .ears .dir{text-align:right}
   .lead p.sum{columns:1}
   .second,.desk{grid-template-columns:1fr}
   .second article,.second article:nth-child(3){display:block;padding:14px 0;border-left:0;border-top:1px solid var(--hair)}
@@ -129,14 +134,14 @@ footer{margin-top:28px;border-top:3px double var(--rule);padding-top:12px;font-f
 <body>
 <div class="page">
   <header>
-    <div class="ears"><span id="date"></span><span id="count"></span></div>
+    <div class="ears"><span id="date"></span><span class="dir" id="dir"></span><span id="edition"></span></div>
     <div class="mast"><h1 id="title" title="Torna alla prima pagina">News4u</h1><p class="motto">Le notizie che contano, ogni mattina</p></div>
     <hr class="rule-double">
     <nav class="sections" id="nav" aria-label="Sezioni"></nav>
     <div class="search"><input id="q" type="search" placeholder="Cerca nel giornale" aria-label="Cerca nel giornale"></div>
   </header>
   <main id="main"></main>
-  <footer><span id="upd"></span><span>Riassunti generati automaticamente dalle fonti citate. Apri l'articolo per il testo completo.</span></footer>
+  <footer><span id="upd"></span><span id="colophon"></span></footer>
 </div>
 
 <script>
@@ -255,8 +260,10 @@ document.getElementById("title").textContent=D.title||"News4u";
 document.title=D.title||"News4u";
 document.getElementById("date").textContent=D.date_long||D.updated||"";
 const today=D.news.filter(n=>n.added===latest).length;
-document.getElementById("count").textContent=today?`${today} notizie nuove oggi`:"";
-document.getElementById("upd").textContent=D.updated?`Aggiornato il ${D.updated}`:"";
+document.getElementById("edition").textContent=D.edition||(today?`${today} notizie nuove oggi`:"");
+if(D.direttore){const dir=document.getElementById("dir");dir.append(el("em",null,"Direttore"),document.createTextNode(D.direttore))}
+document.getElementById("upd").textContent=[D.updated?`Aggiornato il ${D.updated}`:"",today?`${today} notizie nuove oggi`:""].filter(Boolean).join(". ");
+document.getElementById("colophon").textContent=`${D.title||"News4u"}, rassegna quotidiana${D.direttore?". Direttore: "+D.direttore:""}. Riassunti generati automaticamente dalle fonti citate: apri l'articolo per il testo completo.`;
 document.getElementById("title").addEventListener("click",()=>go("prima"));
 document.getElementById("q").addEventListener("input",render);
 render();

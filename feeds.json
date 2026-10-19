@@ -1,5 +1,7 @@
 {
   "titolo": "News4u",
+  "direttore": "Alessandro Fornara",
+  "fondazione": "2026-10-19",
   "max_per_settore": 6,
   "giorni_in_pagina": 7,
   "sections": [
@@ -13,6 +15,16 @@
         "https://techcrunch.com/category/artificial-intelligence/feed/",
         "https://www.theverge.com/rss/ai-artificial-intelligence/index.xml",
         "https://news.google.com/rss/search?q=intelligenza+artificiale+when:2d&hl=it&gl=IT&ceid=IT:it"
+      ]
+    },
+    {
+      "id": "aiagents",
+      "name": "AI Agents",
+      "color": "#444444",
+      "motif": "rays",
+      "topic": "agenti AI: framework, strumenti, casi d'uso reali, rilasci e discussioni tecniche su agenti autonomi (scarta autopromozione, domande banali e meme)",
+      "feeds": [
+        "https://www.reddit.com/r/AI_Agents/top/.rss?t=day&limit=20"
       ]
     },
     {
@@ -49,14 +61,13 @@
       ]
     },
     {
-      "id": "retail",
-      "name": "Retail",
-      "color": "#B7791F",
+      "id": "powerbi",
+      "name": "PowerBI",
+      "color": "#444444",
       "motif": "bars",
-      "topic": "commercio al dettaglio, e-commerce, catene di negozi, retail media, tecnologia per il retail",
+      "topic": "Power BI e Microsoft Fabric: novità, aggiornamenti, DAX, modellazione dati, trucchi e discussioni utili per chi sviluppa report (scarta domande di aiuto troppo specifiche e autopromozione)",
       "feeds": [
-        "https://www.retaildive.com/feeds/news/",
-        "https://news.google.com/rss/search?q=retail+when:2d&hl=it&gl=IT&ceid=IT:it"
+        "https://www.reddit.com/r/PowerBI/top/.rss?t=day&limit=20"
       ]
     },
     {
