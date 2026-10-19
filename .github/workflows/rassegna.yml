@@ -1,0 +1,42 @@
+name: Rassegna giornaliera
+
+on:
+  schedule:
+    - cron: "0 5 * * *"   # ogni giorno alle 05:00 UTC (7:00 ora legale, 6:00 ora solare)
+  workflow_dispatch:       # pulsante "Run workflow" per lanciarla a mano
+
+permissions:
+  contents: write
+
+concurrency:
+  group: rassegna
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Installa dipendenze
+        run: pip install -r requirements.txt
+
+      - name: Genera la rassegna
+        env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          X_BEARER_TOKEN: ${{ secrets.X_BEARER_TOKEN }}
+        run: python build.py
+
+      - name: Salva e pubblica
+        run: |
+          git config user.name "rassegna-bot"
+          git config user.email "rassegna-bot@users.noreply.github.com"
+          git add docs data
+          git diff --cached --quiet || git commit -m "Rassegna $(date -u +%F)"
+          git push
