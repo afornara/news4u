@@ -2,7 +2,10 @@ name: Rassegna giornaliera
 
 on:
   schedule:
-    - cron: "0 5 * * *"   # ogni giorno alle 05:00 UTC (7:00 ora legale, 6:00 ora solare)
+    # GitHub usa l'orario UTC: due orari per coprire ora legale e ora solare.
+    # Il giro parte alle 6:30 italiane, così il giornale è pronto verso le 7.
+    - cron: "30 4 * * *"   # 6:30 in Italia con l'ora legale (fine marzo - fine ottobre)
+    - cron: "30 5 * * *"   # 6:30 in Italia con l'ora solare (fine ottobre - fine marzo)
   workflow_dispatch:       # pulsante "Run workflow" per lanciarla a mano
 
 permissions:
@@ -13,9 +16,30 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  build:
+  orario:
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    outputs:
+      esegui: ${{ steps.check.outputs.esegui }}
+    steps:
+      - name: Controlla l'orario italiano
+        id: check
+        run: |
+          OFFSET=$(TZ=Europe/Rome date +%z)
+          SCHED="${{ github.event.schedule }}"
+          if [ -z "$SCHED" ] \
+             || { [ "$SCHED" = "30 4 * * *" ] && [ "$OFFSET" = "+0200" ]; } \
+             || { [ "$SCHED" = "30 5 * * *" ] && [ "$OFFSET" = "+0100" ]; }; then
+            echo "esegui=si" >> "$GITHUB_OUTPUT"
+          else
+            echo "esegui=no" >> "$GITHUB_OUTPUT"
+            echo "Oggi in Italia vale l'altro orario: questo turno viene saltato."
+          fi
+
+  build:
+    needs: orario
+    if: needs.orario.outputs.esegui == 'si'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@v5
 
